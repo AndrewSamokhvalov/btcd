@@ -91,6 +91,19 @@ func NewRenameAccountCmd(oldAccount, newAccount string) *RenameAccountCmd {
 	}
 }
 
+// SetMiningAddrCmd defines the setminingaddr JSON-RPC command.
+type SetMiningAddrCmd struct {
+	Address string `json:"address"`
+}
+
+// NewSetMiningAddrCmd returns a new instance which can be used to issue a
+// setminingaddr JSON-RPC command.
+func NewSetMiningAddrCmd(addr string) *SetMiningAddrCmd {
+	return &SetMiningAddrCmd{
+		Address: addr,
+	}
+}
+
 func init() {
 	// The commands in this file are only usable with a wallet server.
 	flags := UFWalletOnly
@@ -101,4 +114,5 @@ func init() {
 	MustRegisterCmd("importpubkey", (*ImportPubKeyCmd)(nil), flags)
 	MustRegisterCmd("importwallet", (*ImportWalletCmd)(nil), flags)
 	MustRegisterCmd("renameaccount", (*RenameAccountCmd)(nil), flags)
+	MustRegisterCmd("setminingaddr", (*SetMiningAddrCmd)(nil), flags)
 }

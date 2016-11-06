@@ -138,6 +138,19 @@ func TestBtcWalletExtCmds(t *testing.T) {
 				NewAccount: "newacct",
 			},
 		},
+		{
+			name: "setminingaddr",
+			newCmd: func() (interface{}, error) {
+				return btcjson.NewCmd("setminingaddr", "1Address")
+			},
+			staticCmd: func() interface{} {
+				return btcjson.NewSetMiningAddrCmd("1Address")
+			},
+			marshalled: `{"jsonrpc":"1.0","method":"setminingaddr","params":["1Address"],"id":1}`,
+			unmarshalled: &btcjson.SetMiningAddrCmd{
+				Address: "1Address",
+			},
+		},
 	}
 
 	t.Logf("Running %d tests", len(tests))
