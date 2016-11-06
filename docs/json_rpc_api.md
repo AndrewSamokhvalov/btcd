@@ -583,6 +583,7 @@ The following is an overview of the RPC methods which are implemented by btcd, b
 |4|[searchrawtransactions](#searchrawtransactions)|Y|Query for transactions related to a particular address.|None|
 |5|[node](#node)|N|Attempts to add or remove a peer. |None|
 |6|[generate](#generate)|N|When in simnet or regtest mode, generate a set number of blocks. |None|
+|7|[setminingaddr](#setminingaddr)|N|Add a new address to the list of generation (coinbase payout) addresses. |None|
 
 
 <a name="ExtMethodDetails" />
@@ -660,6 +661,16 @@ The following is an overview of the RPC methods which are implemented by btcd, b
 |Parameters|1. numblocks (int, required) - The number of blocks to generate |
 |Description|When in simnet or regtest mode, generates `numblocks` blocks. If blocks arrive from elsewhere, they are built upon but don't count toward the number of blocks to generate. Only generated blocks are returned. This RPC call will exit with an error if the server is already CPU mining, and will prevent the server from CPU mining for another command while it runs. |
 |Returns|`[ (json array of strings)` <br/>&nbsp;&nbsp; `"blockhash", ... hash of the generated block` <br/>`]` |
+[Return to Overview](#MethodOverview)<br />
+
+<a name="setminingaddr"/>
+
+|   |   |
+|---|---|
+|Method|setminingaddr|
+|Parameters|1. address (string, required) - The address to add to the list of generation addresses|
+|Description|Attempts to add the specified address to the list of mining generation addresses. Attempting to add a duplicated address results in an error. All generation addresses must be unique.|
+|Returns|Nothing|
 [Return to Overview](#MethodOverview)<br />
 
 ***
