@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	prand "math/rand"
 	"net"
 	"runtime"
 	"strconv"
@@ -2389,10 +2390,20 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 	s.cpuMiner = cpuminer.New(&cpuminer.Config{
 		ChainParams:            chainParams,
 		BlockTemplateGenerator: blockTemplateGenerator,
-		MiningAddrs:            cfg.miningAddrs,
-		ProcessBlock:           bm.ProcessBlock,
-		ConnectedCount:         s.ConnectedCount,
-		IsCurrent:              bm.IsCurrent,
+		GetMiningAddr: func() (btcutil.Address, error) {
+			// Choose a payment address at random for the list of
+			// currently registered mining addresses.
+			prand.Seed(time.Now().UnixNano())
+
+			cfg.miningAddrMtx.RLock()
+			addr := cfg.miningAddrs[prand.Intn(len(cfg.miningAddrs))]
+			cfg.miningAddrMtx.RUnlock()
+
+			return addr, nil
+		},
+		ProcessBlock:   bm.ProcessBlock,
+		ConnectedCount: s.ConnectedCount,
+		IsCurrent:      bm.IsCurrent,
 	})
 
 	// Only setup a function to return new addresses to connect to when
