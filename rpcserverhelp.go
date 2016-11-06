@@ -488,6 +488,10 @@ var helpDescsEnUS = map[string]string{
 	"setgenerate-generate":     "Use true to enable generation, false to disable it",
 	"setgenerate-genproclimit": "The number of processors (cores) to limit generation to or -1 for default",
 
+	// SetMiningAddrCmd help.
+	"setminingaddr--synopsis": "Adds an additional available mining address to the set of mining addresses for the daemon",
+	"setminingaddr-address":   "The address to append to the set of mining addresses",
+
 	// StopCmd help.
 	"stop--synopsis": "Shutdown btcd.",
 	"stop--result0":  "The string 'btcd stopping.'",
@@ -618,6 +622,7 @@ var rpcResultTypes = map[string][]interface{}{
 	"searchrawtransactions": {(*string)(nil), (*[]btcjson.SearchRawTransactionsResult)(nil)},
 	"sendrawtransaction":    {(*string)(nil)},
 	"setgenerate":           nil,
+	"setminingaddr":         nil,
 	"stop":                  {(*string)(nil)},
 	"submitblock":           {nil, (*string)(nil)},
 	"validateaddress":       {(*btcjson.ValidateAddressChainResult)(nil)},

@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/connmgr"
@@ -153,6 +154,7 @@ type config struct {
 	dial                 func(string, string) (net.Conn, error)
 	miningAddrs          []btcutil.Address
 	minRelayTxFee        btcutil.Amount
+	miningAddrMtx        sync.RWMutex
 }
 
 // serviceOptions defines the configuration options for the daemon as a service on
@@ -370,8 +372,8 @@ func loadConfig() (*config, []string, error) {
 	// file or the version flag was specified.  Any errors aside from the
 	// help message error can be ignored here since they will be caught by
 	// the final parse below.
-	preCfg := cfg
-	preParser := newConfigParser(&preCfg, &serviceOpts, flags.HelpFlag)
+	preCfg := &cfg
+	preParser := newConfigParser(preCfg, &serviceOpts, flags.HelpFlag)
 	_, err := preParser.Parse()
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {

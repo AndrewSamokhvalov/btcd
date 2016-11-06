@@ -169,6 +169,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"searchrawtransactions": handleSearchRawTransactions,
 	"sendrawtransaction":    handleSendRawTransaction,
 	"setgenerate":           handleSetGenerate,
+	"setminingaddr":         handleSetMiningAddr,
 	"stop":                  handleStop,
 	"submitblock":           handleSubmitBlock,
 	"validateaddress":       handleValidateAddress,
@@ -848,13 +849,16 @@ func handleDecodeScript(s *rpcServer, cmd interface{}, closeChan <-chan struct{}
 func handleGenerate(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
 	// Respond with an error if there are no addresses to pay the
 	// created blocks to.
+	cfg.miningAddrMtx.RLock()
 	if len(cfg.miningAddrs) == 0 {
+		cfg.miningAddrMtx.RUnlock()
 		return nil, &btcjson.RPCError{
 			Code: btcjson.ErrRPCInternal.Code,
 			Message: "No payment addresses specified " +
 				"via --miningaddr",
 		}
 	}
+	cfg.miningAddrMtx.RUnlock()
 
 	// Respond with an error if there's virtually 0 chance of mining a block
 	// with the CPU.
@@ -1395,7 +1399,9 @@ func (state *gbtWorkState) updateBlockTemplate(s *rpcServer, useCoinbaseValue bo
 		// to create their own coinbase.
 		var payAddr btcutil.Address
 		if !useCoinbaseValue {
+			cfg.miningAddrMtx.RLock()
 			payAddr = cfg.miningAddrs[rand.Intn(len(cfg.miningAddrs))]
+			cfg.miningAddrMtx.RUnlock()
 		}
 
 		// Create a new block template that has a coinbase which anyone
@@ -1450,7 +1456,9 @@ func (state *gbtWorkState) updateBlockTemplate(s *rpcServer, useCoinbaseValue bo
 		// returned if none have been specified.
 		if !useCoinbaseValue && !template.ValidPayAddress {
 			// Choose a payment address at random.
+			cfg.miningAddrMtx.RLock()
 			payToAddr := cfg.miningAddrs[rand.Intn(len(cfg.miningAddrs))]
+			cfg.miningAddrMtx.RUnlock()
 
 			// Update the block coinbase output of the template to
 			// pay to the randomly selected payment address.
@@ -1749,7 +1757,9 @@ func handleGetBlockTemplateRequest(s *rpcServer, request *btcjson.TemplateReques
 
 	// When a coinbase transaction has been requested, respond with an error
 	// if there are no addresses to pay the created block template to.
+	cfg.miningAddrMtx.RLock()
 	if !useCoinbaseValue && len(cfg.miningAddrs) == 0 {
+		cfg.miningAddrMtx.RUnlock()
 		return nil, &btcjson.RPCError{
 			Code: btcjson.ErrRPCInternal.Code,
 			Message: "A coinbase transaction has been requested, " +
@@ -1757,6 +1767,7 @@ func handleGetBlockTemplateRequest(s *rpcServer, request *btcjson.TemplateReques
 				"any payment addresses via --miningaddr",
 		}
 	}
+	cfg.miningAddrMtx.RUnlock()
 
 	// Return an error if there are no peers connected since there is no
 	// way to relay a found block or receive transactions to work on.
@@ -2572,7 +2583,9 @@ func handleGetWorkRequest(s *rpcServer) (interface{}, error) {
 		state.prevHash = nil
 
 		// Choose a payment address at random.
+		cfg.miningAddrMtx.RLock()
 		payToAddr := cfg.miningAddrs[rand.Intn(len(cfg.miningAddrs))]
+		cfg.miningAddrMtx.RUnlock()
 		template, err := s.generator.NewBlockTemplate(payToAddr)
 		if err != nil {
 			context := "Failed to create new block template"
@@ -2815,12 +2828,15 @@ func handleGetWork(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (in
 
 	// Respond with an error if there are no addresses to pay the created
 	// blocks to.
+	cfg.miningAddrMtx.RLock()
 	if len(cfg.miningAddrs) == 0 {
+		cfg.miningAddrMtx.RUnlock()
 		return nil, &btcjson.RPCError{
 			Code:    btcjson.ErrRPCInternal.Code,
 			Message: "No payment addresses specified via --miningaddr",
 		}
 	}
+	cfg.miningAddrMtx.RUnlock()
 
 	// Return an error if there are no peers connected since there is no
 	// way to relay a found block or receive transactions to work on.
@@ -3480,18 +3496,52 @@ func handleSetGenerate(s *rpcServer, cmd interface{}, closeChan <-chan struct{})
 	} else {
 		// Respond with an error if there are no addresses to pay the
 		// created blocks to.
+		cfg.miningAddrMtx.RLock()
 		if len(cfg.miningAddrs) == 0 {
+			cfg.miningAddrMtx.RUnlock()
 			return nil, &btcjson.RPCError{
 				Code: btcjson.ErrRPCInternal.Code,
 				Message: "No payment addresses specified " +
 					"via --miningaddr",
 			}
 		}
+		cfg.miningAddrMtx.RUnlock()
 
 		// It's safe to call start even if it's already started.
 		s.server.cpuMiner.SetNumWorkers(int32(genProcLimit))
 		s.server.cpuMiner.Start()
 	}
+	return nil, nil
+}
+
+func handleSetMiningAddr(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+	c := cmd.(*btcjson.SetMiningAddrCmd)
+
+	// Decode the addresses encoded as a string into an in-memory object.
+	addr, err := btcutil.DecodeAddress(c.Address, activeNetParams.Params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Scan the current list of mining addresses to ensure that we don't
+	// add any duplicates.
+	cfg.miningAddrMtx.RLock()
+	for _, miningAddr := range cfg.miningAddrs {
+		if miningAddr.String() == addr.String() {
+			return nil, &btcjson.RPCError{
+				Code:    btcjson.ErrRPCInternal.Code,
+				Message: "Duplicate mining address detected",
+			}
+		}
+	}
+	cfg.miningAddrMtx.RUnlock()
+
+	// If adding this new address will not introduce any duplicate mining
+	// addresses, then append it to the list of available mining addresses.
+	cfg.miningAddrMtx.Lock()
+	cfg.miningAddrs = append(cfg.miningAddrs, addr)
+	cfg.miningAddrMtx.Unlock()
+
 	return nil, nil
 }
 
