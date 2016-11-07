@@ -289,7 +289,7 @@ var MainNetParams = Params{
 		},
 		DeploymentCSV: {
 			BitNumber:  0,
-			StartTime:  1462060800, // March 1st, 2016
+			StartTime:  1462060800, // May 1st, 2016
 			ExpireTime: 1493596800, // May 1st, 2017
 		},
 	},
