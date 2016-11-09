@@ -1174,7 +1174,7 @@ func handleGetBlockchainInfo(s *rpcServer, cmd interface{}, closeChan <-chan str
 
 	// Finally, query the BIP0009 version bits state for all currently
 	// defined BIP0009 soft-fork deployments.
-	for deployment, depolymentDetails := range activeNetParams.Deployments {
+	for deployment, deploymentDetails := range activeNetParams.Deployments {
 		// Ignore the dummy deployment as it's only used for testing
 		// purposes.
 		if deployment == chaincfg.DeploymentTestDummy {
@@ -1206,9 +1206,9 @@ func handleGetBlockchainInfo(s *rpcServer, cmd interface{}, closeChan <-chan str
 		// information gathered above.
 		chainInfo.Bip9SoftForks[forkName] = &btcjson.Bip9SoftForkDescription{
 			Status:    strings.ToLower(statusString),
-			Bit:       depolymentDetails.BitNumber,
-			StartTime: int64(depolymentDetails.StartTime),
-			Timeout:   int64(depolymentDetails.ExpireTime),
+			Bit:       deploymentDetails.BitNumber,
+			StartTime: int64(deploymentDetails.StartTime),
+			Timeout:   int64(deploymentDetails.ExpireTime),
 		}
 	}
 
