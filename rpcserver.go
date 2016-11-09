@@ -1172,7 +1172,7 @@ func handleGetBlockchainInfo(s *rpcServer, cmd interface{}, closeChan <-chan str
 		},
 	}
 
-	// Finally, query the BIP0009 verion bits state fo all currently
+	// Finally, query the BIP0009 version bits state for all currently
 	// defined BIP0009 soft-fork deployments.
 	for deployment, depolymentDetails := range activeNetParams.Deployments {
 		// Ignore the dummy deployment as it's only used for testing
