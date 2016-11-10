@@ -1905,16 +1905,42 @@ func (b *BlockChain) initThresholdCaches() error {
 			"change.  This might take a while...")
 	}
 
-	// Warn the user if a high enough percentage of the last blocks have
-	// unexpected versions.
-	if err := b.warnUnknownVersions(b.bestNode); err != nil {
-		return err
+	// Initialize the warning and deployment caches by calculating the
+	// threshold state for each of them.  This will ensure the caches are
+	// populated and any states that needed to be recalculated due to
+	// definition changes is done now.
+	for bit := uint32(0); bit < vbNumBits; bit++ {
+		checker := bitConditionChecker{bit: bit, chain: b}
+		cache := &b.warningCaches[bit]
+		_, err := b.thresholdState(b.bestNode, checker, cache)
+		if err != nil {
+			return err
+		}
+	}
+	for id := 0; id < len(b.chainParams.Deployments); id++ {
+		deployment := &b.chainParams.Deployments[id]
+		cache := &b.deploymentCaches[id]
+		checker := deploymentChecker{deployment: deployment, chain: b}
+		_, err := b.thresholdState(b.bestNode, checker, cache)
+		if err != nil {
+			return err
+		}
 	}
 
-	// Warn the user if any unknown new rules are either about to activate
-	// or have been activated.
-	if err := b.warnUnknownRuleActivations(b.bestNode); err != nil {
-		return err
+	// No warnings about unknown rules or versions until the chain is
+	// current.
+	if b.isCurrent() {
+		// Warn if a high enough percentage of the last blocks have
+		// unexpected versions.
+		if err := b.warnUnknownVersions(b.bestNode); err != nil {
+			return err
+		}
+
+		// Warn if any unknown new rules are either about to activate or
+		// have already been activated.
+		if err := b.warnUnknownRuleActivations(b.bestNode); err != nil {
+			return err
+		}
 	}
 
 	// Update the cached threshold states in the database as needed.
