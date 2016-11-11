@@ -316,8 +316,8 @@ func (b *BlockChain) ThresholdState(deploymentID uint32) (ThresholdState, error)
 	return state, err
 }
 
-// thresholdForDeployment returns the current rule change threshold for a
-// given deploymentID. The threshold is evaluated from the point of view of the
+// depolymentState returns the current rule change threshold for a given
+// deploymentID. The threshold is evaluated from the point of view of the
 // blockNode passed in as the first argument to this method.
 //
 // This function MUST be called with the chain state lock held (for writes).
